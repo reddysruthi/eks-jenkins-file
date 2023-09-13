@@ -32,56 +32,18 @@ pipeline {
         }
         stage('Terraform plan') {
             steps {
-                script {
-                    sh 'terraform plan -out=terraform_plan'
-                    sh 'terraform show -json ./terraform_plan > terraform_plan.json'
-                }
-            }
-        } 
-        stage('archive terrafrom plan output') {
-            steps {
-                archiveArtifacts artifacts: 'terraform_plan.json', excludes: 'output/*.md', onlyIfSuccessful: true
+                sh 'terraform plan -no-color'
             }
         }
-        stage('Review and Run terraform apply') {
+        stage('Terraform apply') {
             steps {
-                script {
-                    env.selected_action = input  message: 'Select action to perform',ok : 'Proceed',id :'tag_id',
-                    parameters:[choice(choices: ['apply', 'abort'], description: 'Select action', name: 'action')]
-                }
+                sh 'terraform apply -auto-approve'
             }
         }
-        stage('Terraform Apply') { 
+        stage('Terraform destroy') {
             steps {
-                script {
-                    if (env.selected_action == 'apply') {
-                        sh 'terraform apply -auto-approve'
-                    } else {
-                        sh 'echo Review failed and terraform apply was aborted'
-                        sh 'exit 0'
-                    }
-                }   
+                sh 'terraform destroy -auto-approve'
             }
-        }
-        stage('Run terraform destroy or not?') {
-            steps {
-                script {
-                    env.selected_action = input  message: 'Select action to perform',ok : 'Proceed',id :'tag_id',
-                    parameters:[choice(choices: ['destroy', 'abort'], description: 'Select action', name: 'action')]
-                }
-            }
-        }
-        stage('Terraform Destroy') { 
-            steps {
-                script {
-                    if (env.selected_action == "destroy") {
-                        sh 'terraform destroy -auto-approve'
-                    } else {
-                        sh 'echo We are not destroying the resource initialted, aborted!!!'
-                        sh 'exit 0'
-                    }
-                }
-            } 
         }
     }
 }
